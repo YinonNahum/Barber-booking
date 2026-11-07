@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ניהול התור · ינון נחום</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#EFEFED">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23111'/%3E%3Crect x='8' y='40' width='48' height='16' fill='%23FF4D1F'/%3E%3Ctext x='32' y='38' font-family='Arial Black,Arial' font-weight='900' font-size='28' fill='white' text-anchor='middle'%3EYN%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;700&family=Rubik:wght@500;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="inner">
+    <a class="brand" href="./">לא עוד סתם תספורת.</a>
+    <a class="btn btn-dark" style="min-height:44px;padding:0 16px;font-size:15px" href="./#services">קבע תור</a>
+  </div>
+</header>
+<main style="padding:28px 0 60px">
+  <div class="sphere" aria-hidden="true" style="width:220px;height:220px;top:-60px;left:-100px"></div>
+  <div class="sphere" aria-hidden="true" style="width:90px;height:90px;top:420px;right:-30px"></div>
+  <div class="booking" style="padding-bottom:40px">
+    <section class="card done" id="box" aria-live="polite">
+      <div class="skeleton" style="height:28px;width:40%"></div>
+      <div class="skeleton" style="height:40px;margin-top:14px"></div>
+      <div class="skeleton" style="height:160px;margin-top:14px"></div>
+    </section>
+  </div>
+</main>
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script>
+(function () {
+  const { rpc, fmt, esc, errorText, logView } = window.API;
+  const box = document.getElementById('box');
+  const token = new URLSearchParams(location.search).get('t');
+  logView();
+
+  function fail(text) {
+    box.innerHTML = `<h2>לא מצאנו את התור</h2><p class="hint">${esc(text)}</p>
+      <div class="actions" style="margin-top:18px"><a class="btn btn-dark" href="./#services">לקביעת תור</a></div>`;
+  }
+
+  async function load() {
+    if (!token || !/^[0-9a-f-]{36}$/i.test(token)) { fail('הקישור לא תקין. השתמש בקישור שקיבלת בעת קביעת התור.'); return; }
+    let b;
+    try { b = await rpc('get_booking', { p_token: token }); } catch (err) { fail(errorText(err)); return; }
+    if (!b) { fail('ייתכן שהקישור לא שלם. נסה להעתיק אותו שוב.'); return; }
+    render(b);
+  }
+
+  function render(b, note) {
+    const upcoming = new Date(b.starts_at) > new Date();
+    const statusText = {
+      booked: upcoming ? 'התור שלך' : 'התור עבר',
+      cancelled: 'התור בוטל', late_cancelled: 'התור בוטל (ביטול מאוחר)',
+      completed: 'התור הושלם', no_show: 'התור הסתיים'
+    }[b.status];
+    const canCancel = b.status === 'booked' && upcoming;
+    box.innerHTML = `
+      <span class="badge">${esc(statusText)}</span>
+      <h2>${b.status === 'booked' && upcoming ? 'היי ' + esc(b.first_name) + ',' : esc(statusText)}</h2>
+      <ul class="summary">
+        <li><span>שירות</span><span>${esc(b.service)}</span></li>
+        <li><span>מתי</span><span>${esc(fmt.dateLong(b.starts_at))} · ${fmt.time(b.starts_at)}</span></li>
+        <li><span>מחיר</span><span>${fmt.money(b.price)}</span></li>
+        ${b.address ? `<li><span>כתובת</span><span>${esc(b.address)}</span></li>` : ''}
+      </ul>
+      ${note || ''}
+      ${canCancel ? (b.is_late
+        ? `<div class="alert warn"><b>שים לב:</b> נשארו פחות מ-${b.cancel_cutoff_hours} שעות לתור. ביטול עכשיו יחויב במחיר המלא של השירות (${fmt.money(b.price)}).</div>`
+        : `<p class="policy" style="margin:0 0 4px">ביטול חינם עד ${esc(fmt.dateLong(b.free_cancel_until))} בשעה ${fmt.time(b.free_cancel_until)}.</p>`) : ''}
+      <div class="actions" style="margin-top:16px">
+        ${canCancel ? `<button class="btn ${b.is_late ? 'btn-danger' : 'btn-ghost'}" id="cancel" type="button">${b.is_late ? 'בטל בכל זאת (חיוב ' + fmt.money(b.price) + ')' : 'ביטול התור'}</button>` : ''}
+        ${b.business_phone ? `<a class="btn btn-ghost" href="tel:${esc(b.business_phone)}">התקשר למספרה</a>` : ''}
+        <a class="btn btn-dark" href="./#services">${b.status === 'booked' && upcoming ? 'קבע תור נוסף' : 'קבע תור חדש'}</a>
+      </div>
+      <div id="msg" role="alert"></div>`;
+    const btn = document.getElementById('cancel');
+    if (btn) btn.addEventListener('click', () => confirmCancel(b, btn));
+  }
+
+  async function confirmCancel(b, btn) {
+    // fresh check: the free-cancellation window may have closed while the page was open
+    let fresh = b;
+    try { fresh = await rpc('get_booking', { p_token: token }) || b; } catch (e) { /* use what we have */ }
+    if (fresh.is_late && !b.is_late) { render(fresh); return; }
+    const question = fresh.is_late
+      ? `ביטול מאוחר יחויב במחיר המלא (${fmt.money(fresh.price)}). לבטל בכל זאת?`
+      : 'לבטל את התור?';
+    if (!confirm(question)) return;
+    btn.disabled = true;
+    try {
+      const res = await rpc('cancel_booking', { p_token: token, p_accept_charge: !!fresh.is_late });
+      const after = await rpc('get_booking', { p_token: token });
+      render(after, res.charged > 0
+        ? `<div class="alert warn">התור בוטל. נרשם חיוב של ${fmt.money(res.charged)} שישולם בביקור הבא.</div>`
+        : '<div class="alert ok">התור בוטל. לא חויבת.</div>');
+    } catch (err) {
+      document.getElementById('msg').innerHTML = `<div class="alert error">${esc(errorText(err))}</div>`;
+      btn.disabled = false;
+    }
+  }
+  load();
+})();
+</script>
+</body>
+</html>
