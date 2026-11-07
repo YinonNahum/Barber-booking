@@ -79,17 +79,19 @@
     return s && s.access_token;
   }
 
+  const adminUrl = () => location.origin + location.pathname.replace(/[^/]*$/, '') + 'admin.html';
+
   const auth = {
     session: () => store.get(SESSION_KEY),
     async signIn(email, password) {
       return saveSession(await request('/auth/v1/token?grant_type=password', { method: 'POST', body: { email, password } }));
     },
     async signUp(email, password) {
-      const res = await request('/auth/v1/signup', { method: 'POST', body: { email, password, options: {} } });
+      const res = await request('/auth/v1/signup?redirect_to=' + encodeURIComponent(adminUrl()), { method: 'POST', body: { email, password } });
       return saveSession(res);
     },
     async resetPassword(email) {
-      return request('/auth/v1/recover', { method: 'POST', body: { email } });
+      return request('/auth/v1/recover?redirect_to=' + encodeURIComponent(adminUrl()), { method: 'POST', body: { email } });
     },
     async signOut() {
       try { await request('/auth/v1/logout', { method: 'POST', auth: true }); } catch (e) { /* ignore */ }
