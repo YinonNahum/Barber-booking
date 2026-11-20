@@ -1,7 +1,6 @@
 (function () {
   const { rpc, fmt, esc, errorText, visitorId, logView } = window.API;
   const $ = (s) => document.querySelector(s);
-  const WEEKDAYS = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
   const MY_KEY = 'my_bookings';
 
   const state = { info: null, service: null, days: [], day: null, slots: [], slot: null, busy: false };
@@ -31,9 +30,9 @@
   // ---------- render: services ----------
   function renderServices() {
     const list = $('#svc-list');
-    list.innerHTML = state.info.services.map((s, i) => `
+    list.innerHTML = state.info.services.map((s) => `
       <button type="button" class="svc" data-id="${s.id}" aria-pressed="${state.service && state.service.id === s.id}">
-        <span class="n">${String(i + 1).padStart(2, '0')}</span>
+        <span class="n" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
         <span class="t"><b>${esc(s.name)}</b><small>${s.description ? esc(s.description) + ' · ' : ''}${s.duration_min} דק׳</small></span>
         <span class="p">${fmt.money(s.price)}</span>
       </button>`).join('') || '<p class="hint">אין שירותים זמינים כרגע.</p>';
@@ -52,10 +51,20 @@
     scrollTo($('#when'));
   });
 
-  // ---------- render: days ----------
+  // ---------- calendar (month / week / day) ----------
+  const VIEW_KEY = 'cal_view';
+  const addDays = (iso, n) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+  const dow = (iso) => new Date(iso + 'T12:00:00Z').getUTCDay();
+  const weekStart = (iso) => addDays(iso, -dow(iso));
+  const monthStart = (iso) => iso.slice(0, 8) + '01';
+  const monthAdd = (iso, n) => { const d = new Date(iso.slice(0, 8) + '01T12:00:00Z'); d.setUTCMonth(d.getUTCMonth() + n); return d.toISOString().slice(0, 10); };
+  const heFmt = (opts) => new Intl.DateTimeFormat('he-IL', { timeZone: 'UTC', ...opts });
+  const dayInfo = (iso) => state.days.find((d) => d.day === iso);
+  try { state.view = localStorage.getItem(VIEW_KEY) || 'week'; } catch (e) { state.view = 'week'; }
+  if (!['month', 'week', 'day'].includes(state.view)) state.view = 'week';
+
   async function loadDays() {
-    const daysEl = $('#days');
-    daysEl.innerHTML = Array.from({ length: 6 }, () => '<div class="day skeleton"></div>').join('');
+    $('#cal').innerHTML = '<div class="skeleton" style="height:84px"></div>';
     $('#slots-area').innerHTML = '';
     try {
       state.days = await rpc('get_days', { p_service: state.service.id });
@@ -65,39 +74,131 @@
     }
     const keep = state.day && state.days.find((d) => d.day === state.day && d.is_open);
     const first = keep || state.days.find((d) => d.free_slots > 0) || state.days.find((d) => d.is_open);
-    state.day = first ? first.day : null;
-    renderDays();
-    if (state.day) loadSlots();
+    state.day = first ? first.day : (state.days[0] && state.days[0].day);
+    state.anchor = state.day;
+    renderCal();
+    if (first) loadSlots();
     else $('#slots-area').innerHTML = '<p class="hint">אין ימי עבודה פתוחים בתקופה הקרובה.</p>';
   }
 
-  function renderDays() {
-    $('#days').innerHTML = state.days.map((d) => {
-      const label = d.day === fmt.todayIso() ? 'היום' : fmt.weekdayShort(d.day);
-      const full = d.is_open && d.free_slots === 0;
-      return `<button type="button" class="day" data-day="${d.day}" ${d.is_open ? '' : 'disabled'}
-        aria-pressed="${d.day === state.day}" aria-label="${esc(fmt.dateLong(d.day + 'T12:00:00Z'))}${!d.is_open ? ', סגור' : full ? ', מלא' : ''}">
-        <span class="w">${label}</span><span class="d">${fmt.dayNum(d.day)}</span>${full ? '<span class="full">מלא</span>' : ''}
-      </button>`;
-    }).join('');
-    const sel = $('#days .day[aria-pressed="true"]');
-    if (sel) sel.scrollIntoView({ block: 'nearest', inline: 'center' });
+  function cellStatus(info) {
+    if (!info) return { cls: 'out', txt: '', label: 'מחוץ לטווח ההזמנות' };
+    if (!info.is_open) return { cls: 'closed', txt: 'סגור', label: 'סגור' };
+    if (!info.free_slots) return { cls: 'full', txt: 'מלא', label: 'מלא, אפשר להירשם להמתנה' };
+    return { cls: 'free', txt: `${info.free_slots} פנויים`, label: `${info.free_slots} שעות פנויות` };
   }
 
-  $('#days').addEventListener('click', (e) => {
-    const btn = e.target.closest('.day');
-    if (!btn || btn.disabled) return;
-    state.day = btn.dataset.day;
+  function dayCell(iso, { compact = false, inMonth = true } = {}) {
+    if (!inMonth) return '<span class="cell blank" aria-hidden="true"></span>';
+    const info = dayInfo(iso);
+    const st = cellStatus(info);
+    const clickable = info && info.is_open;
+    const today = iso === fmt.todayIso();
+    return `<button type="button" class="cell ${st.cls}${today ? ' today' : ''}" data-day="${iso}" ${clickable ? '' : 'disabled'}
+      aria-pressed="${iso === state.day}" aria-label="${esc(heFmt({ weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(iso + 'T12:00:00Z')))}, ${st.label}">
+      ${compact ? '' : `<span class="w">${today ? 'היום' : fmt.weekdayShort(iso)}</span>`}
+      <span class="d">${fmt.dayNum(iso)}</span>
+      ${compact ? (st.cls === 'free' ? '<span class="dot" aria-hidden="true"></span>' : st.cls === 'full' ? '<span class="s">מלא</span>' : '')
+                : `<span class="s">${st.txt}</span>`}
+    </button>`;
+  }
+
+  function renderCal() {
+    const first = state.days[0] ? state.days[0].day : fmt.todayIso();
+    const last = state.days.length ? state.days[state.days.length - 1].day : first;
+    document.querySelectorAll('.seg [data-view]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === state.view)));
+    const cal = $('#cal');
+    let label = '';
+    let prevOk = true;
+    let nextOk = true;
+    if (state.view === 'week') {
+      const ws = weekStart(state.anchor);
+      const days = Array.from({ length: 7 }, (_, i) => addDays(ws, i));
+      const a = new Date(days[0] + 'T12:00:00Z');
+      const b = new Date(days[6] + 'T12:00:00Z');
+      label = a.getUTCMonth() === b.getUTCMonth()
+        ? `${a.getUTCDate()}–${b.getUTCDate()} ב${heFmt({ month: 'long' }).format(b)}`
+        : `${heFmt({ day: 'numeric', month: 'short' }).format(a)} – ${heFmt({ day: 'numeric', month: 'short' }).format(b)}`;
+      cal.innerHTML = `<div class="cal-week">${days.map((d) => dayCell(d)).join('')}</div>`;
+      prevOk = ws > first;
+      nextOk = addDays(ws, 7) <= last;
+    } else if (state.view === 'month') {
+      const ms = monthStart(state.anchor);
+      const gridStart = weekStart(ms);
+      const nextMs = monthAdd(ms, 1);
+      const cells = [];
+      for (let d = gridStart; d < nextMs || dow(d) !== 0; d = addDays(d, 1)) cells.push(d);
+      label = heFmt({ month: 'long', year: 'numeric' }).format(new Date(ms + 'T12:00:00Z'));
+      cal.innerHTML = `<div class="cal-month">
+        ${['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'].map((w) => `<span class="wh" aria-hidden="true">${w}</span>`).join('')}
+        ${cells.map((d) => dayCell(d, { compact: true, inMonth: d.slice(0, 7) === ms.slice(0, 7) })).join('')}
+      </div>`;
+      prevOk = ms > monthStart(first);
+      nextOk = nextMs <= last;
+    } else {
+      label = heFmt({ weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(state.day + 'T12:00:00Z'));
+      const st = cellStatus(dayInfo(state.day));
+      cal.innerHTML = `<p class="hint cal-day-note">${state.day === fmt.todayIso() ? 'היום · ' : ''}${st.cls === 'free' ? st.txt : st.txt || ''}</p>`;
+      prevOk = state.day > first;
+      nextOk = state.day < last;
+    }
+    $('#cal-label').textContent = label;
+    $('#cal-prev').disabled = !prevOk;
+    $('#cal-next').disabled = !nextOk;
+  }
+
+  function selectDay(iso, { scroll = false } = {}) {
+    state.day = iso;
+    state.anchor = iso;
     state.slot = null;
     show($('#details'), false);
-    renderDays();
+    renderCal();
     updateBar();
     loadSlots();
+    if (scroll && state.view !== 'day') setTimeout(() => $('#slots-area').scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 250);
+  }
+
+  $('#cal').addEventListener('click', (e) => {
+    const btn = e.target.closest('.cell[data-day]');
+    if (!btn || btn.disabled) return;
+    selectDay(btn.dataset.day, { scroll: state.view === 'month' });
   });
+
+  document.querySelector('.seg').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-view]');
+    if (!b) return;
+    state.view = b.dataset.view;
+    try { localStorage.setItem(VIEW_KEY, state.view); } catch (err) { /* ignore */ }
+    state.anchor = state.day;
+    renderCal();
+  });
+
+  function step(dir) {
+    if (state.view === 'week') {
+      state.anchor = addDays(weekStart(state.anchor), 7 * dir);
+      renderCal();
+    } else if (state.view === 'month') {
+      state.anchor = monthAdd(state.anchor, dir);
+      renderCal();
+    } else {
+      // day view: jump to the next/previous open day
+      let d = state.day;
+      for (let i = 0; i < 60; i++) {
+        d = addDays(d, dir);
+        const info = dayInfo(d);
+        if (!info) break;
+        if (info.is_open) { selectDay(d); return; }
+      }
+    }
+  }
+  $('#cal-prev').addEventListener('click', () => step(-1));
+  $('#cal-next').addEventListener('click', () => step(1));
 
   // ---------- render: slots ----------
   async function loadSlots() {
     const area = $('#slots-area');
+    const info = dayInfo(state.day);
+    if (info && !info.is_open) { state.slots = []; area.innerHTML = '<p class="hint">המספרה סגורה ביום הזה.</p>'; return; }
     area.innerHTML = '<div class="slots">' + Array.from({ length: 8 }, () => '<div class="slot skeleton"></div>').join('') + '</div>';
     try {
       state.slots = await rpc('get_slots', { p_service: state.service.id, p_day: state.day });
@@ -265,6 +366,7 @@
         <li><span>מחיר</span><span>${fmt.money(res.price)}</span></li>
         ${res.address ? `<li><span>כתובת</span><span>${esc(res.address)}</span></li>` : ''}
       </ul>
+      ${res.address ? window.API.navButtons(res.address) : ''}
       <p class="policy" style="margin:0 0 16px">ביטול חינם עד ${state.info.cancel_cutoff_hours} שעות לפני התור. שמור את הקישור לניהול התור, דרכו אפשר לבטל.</p>
       <div class="actions">
         <a class="btn btn-dark" href="${esc(link)}">ניהול / ביטול התור</a>
@@ -320,6 +422,7 @@
     const i = state.info;
     if (i.name) $('#ft-name').textContent = i.name;
     $('#ft-address').textContent = i.address || '';
+    $('#ft-nav').innerHTML = window.API.navButtons(i.address);
     if (i.phone) $('#ft-phone').innerHTML = `<a href="tel:${esc(i.phone)}" dir="ltr">${esc(fmt.phoneDisplay(i.phone))}</a>`;
     const byDay = {};
     i.hours.forEach((h) => { (byDay[h.weekday] = byDay[h.weekday] || []).push(h.start + '–' + h.end); });

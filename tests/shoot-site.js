@@ -24,11 +24,19 @@ const out = process.argv[2] || '/tmp';
   await page.waitForTimeout(400);
   await page.screenshot({ path: out + '/m3-when.png' });
 
+  await page.$eval('[data-view="month"]', (e) => e.click()); await page.waitForTimeout(200);
+  await page.$eval('#when', (e) => e.scrollIntoView()); await page.screenshot({ path: out + '/m3b-month.png' });
+  await page.$eval('[data-view="day"]', (e) => e.click()); await page.waitForTimeout(200);
+  await page.$eval('#when', (e) => e.scrollIntoView()); await page.screenshot({ path: out + '/m3c-day.png' });
+  await page.$eval('#cal-next', (e) => e.click()); await page.waitForTimeout(600); await page.waitForTimeout(200);
+  await page.$eval('#when', (e) => e.scrollIntoView()); await page.screenshot({ path: out + '/m3d-day-next.png' });
+  await page.$eval('[data-view="week"]', (e) => e.click()); await page.waitForTimeout(200);
+  await page.$eval('#contact', (e) => e.scrollIntoView()); await page.screenshot({ path: out + '/m9-footer.png' });
   // full day -> waitlist
-  const fullDay = await page.$('.day .full');
-  if (fullDay) { await page.$eval('.day .full', (e) => { e.closest('button').scrollIntoView({block:'center'}); e.closest('button').click(); }); await page.waitForSelector('#wl-form'); await page.waitForTimeout(300); await page.screenshot({ path: out + '/m4-waitlist.png' }); }
+  const fullDay = await page.$('.cell.full');
+  if (fullDay) { await page.$eval('.cell.full', (e) => { e.scrollIntoView({block:'center'}); e.click(); }); await page.waitForSelector('#wl-form'); await page.waitForTimeout(300); await page.screenshot({ path: out + '/m4-waitlist.png' }); }
   // back to a day with slots
-  await page.$eval('.day:not([disabled]):not(:has(.full))', (e) => e.click());
+  await page.$eval('.cell.free', (e) => e.click());
   await page.waitForSelector('.slot');
   await page.$$eval('.slot', (els) => els[4].click());
   await page.waitForTimeout(500);

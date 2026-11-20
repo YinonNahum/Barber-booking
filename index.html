@@ -50,7 +50,6 @@
       <img class="figure" src="img/barber.webp" alt="ינון נחום מחזיק מספריים" width="640" height="1335" fetchpriority="high">
       <div class="block-tint" aria-hidden="true"></div>
       <a class="book-btn" href="#services">קבע תור <span aria-hidden="true">←</span></a>
-      <div class="num" aria-hidden="true">115</div>
     </section>
 
     <section class="gallery" id="works" aria-labelledby="works-h">
@@ -59,11 +58,11 @@
         <span class="step" aria-hidden="true">החלק ←</span>
       </div>
       <div class="track" tabindex="0" aria-label="גלריית עבודות, גלול הצידה">
-        <figure><div class="ph"><img src="img/work1.webp" alt="טייפר עם טקסטורה למעלה" loading="lazy" width="600" height="800"></div><figcaption><b>טייפר עם טקסטורה</b><span>01</span></figcaption></figure>
-        <figure><div class="ph"><img src="img/work2.webp" alt="פייד נמוך עם שיער ארוך למעלה" loading="lazy" width="600" height="800"></div><figcaption><b>פייד נמוך, שיער ארוך</b><span>02</span></figcaption></figure>
-        <figure><div class="ph"><img src="img/work3.webp" alt="פייד עם פוני" loading="lazy" width="600" height="800"></div><figcaption><b>פייד ופוני</b><span>03</span></figcaption></figure>
-        <figure><div class="ph"><img src="img/work4.webp" alt="טייפר וזקן" loading="lazy" width="600" height="800"></div><figcaption><b>טייפר וזקן</b><span>04</span></figcaption></figure>
-        <figure><div class="ph"><img src="img/work5.webp" alt="תספורת וזקן מלא מעוצב" loading="lazy" width="600" height="800"></div><figcaption><b>זקן מלא מעוצב</b><span>05</span></figcaption></figure>
+        <figure><div class="ph"><img src="img/work1.webp" alt="טייפר עם טקסטורה למעלה" loading="lazy" width="600" height="800"></div><figcaption><b>טייפר עם טקסטורה</b></figcaption></figure>
+        <figure><div class="ph"><img src="img/work2.webp" alt="פייד נמוך עם שיער ארוך למעלה" loading="lazy" width="600" height="800"></div><figcaption><b>פייד נמוך, שיער ארוך</b></figcaption></figure>
+        <figure><div class="ph"><img src="img/work3.webp" alt="פייד עם פוני" loading="lazy" width="600" height="800"></div><figcaption><b>פייד ופוני</b></figcaption></figure>
+        <figure><div class="ph"><img src="img/work4.webp" alt="טייפר וזקן" loading="lazy" width="600" height="800"></div><figcaption><b>טייפר וזקן</b></figcaption></figure>
+        <figure><div class="ph"><img src="img/work5.webp" alt="תספורת וזקן מלא מעוצב" loading="lazy" width="600" height="800"></div><figcaption><b>זקן מלא מעוצב</b></figcaption></figure>
       </div>
     </section>
   </div>
@@ -71,7 +70,7 @@
   <div class="booking" id="booking">
     <!-- Step 1 -->
     <section class="card" id="services" aria-labelledby="svc-h">
-      <div class="sec-head"><h2 id="svc-h">בחר שירות</h2><span class="step">— 01</span></div>
+      <div class="sec-head"><h2 id="svc-h">בחר שירות</h2></div>
       <div id="svc-list" role="group" aria-labelledby="svc-h">
         <div class="skeleton" style="height:56px;margin:8px 0"></div>
         <div class="skeleton" style="height:56px;margin:8px 0"></div>
@@ -81,15 +80,27 @@
 
     <!-- Step 2 -->
     <section class="card" id="when" aria-labelledby="when-h" hidden>
-      <div class="sec-head"><h2 id="when-h">יום ושעה</h2><span class="step">— 02</span></div>
-      <div class="days" id="days" role="group" aria-label="בחר יום"></div>
+      <div class="sec-head"><h2 id="when-h">יום ושעה</h2></div>
+      <div class="cal-head">
+        <div class="seg" role="group" aria-label="תצוגת יומן">
+          <button type="button" data-view="month">חודש</button>
+          <button type="button" data-view="week">שבוע</button>
+          <button type="button" data-view="day">יום</button>
+        </div>
+        <div class="cal-nav">
+          <button type="button" class="cal-arrow" id="cal-prev" aria-label="הקודם">→</button>
+          <span id="cal-label" aria-live="polite"></span>
+          <button type="button" class="cal-arrow" id="cal-next" aria-label="הבא">←</button>
+        </div>
+      </div>
+      <div id="cal"></div>
       <div id="slots-area" aria-live="polite"></div>
       <p class="policy" id="policy-short"></p>
     </section>
 
     <!-- Step 3 -->
     <section class="card" id="details" aria-labelledby="det-h" hidden>
-      <div class="sec-head"><h2 id="det-h">הפרטים שלך</h2><span class="step">— 03</span></div>
+      <div class="sec-head"><h2 id="det-h">הפרטים שלך</h2></div>
       <form id="details-form" novalidate>
         <label class="field">שם מלא
           <input id="f-name" name="name" autocomplete="name" required maxlength="60">
@@ -121,6 +132,7 @@
     <div>
       <div style="font-weight:700" id="ft-name">ינון נחום</div>
       <div id="ft-address"></div>
+      <div id="ft-nav"></div>
       <div id="ft-phone"></div>
     </div>
     <div class="hours" id="ft-hours"></div>

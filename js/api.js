@@ -171,5 +171,19 @@
     }).catch(() => { /* analytics must never break the page */ });
   }
 
-  window.API = { rpc, request, auth, db, fmt, esc, errorText, visitorId, logView };
+  // Waze + Google Maps buttons for an address
+  function navButtons(address) {
+    if (!address) return '';
+    const q = encodeURIComponent(address);
+    return `<div class="nav-btns">
+      <a class="nav-btn" href="https://waze.com/ul?q=${q}&navigate=yes" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 17a2 2 0 1 0 4 0M15 17a2 2 0 1 0 4 0"/><path d="M3 13a8 8 0 0 1 16-1 3 3 0 0 1 2 3c0 1-1 2-2 2h-1M9 17h6M5 17H4a1 1 0 0 1-1-1v-3"/><circle cx="10" cy="10" r=".6" fill="currentColor"/><circle cx="14" cy="10" r=".6" fill="currentColor"/></svg>
+        Waze</a>
+      <a class="nav-btn" href="https://www.google.com/maps/search/?api=1&query=${q}" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
+        Google Maps</a>
+    </div>`;
+  }
+
+  window.API = { rpc, request, auth, db, fmt, esc, errorText, visitorId, logView, navButtons };
 })();

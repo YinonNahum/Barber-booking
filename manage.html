@@ -69,6 +69,7 @@
         <li><span>מחיר</span><span>${fmt.money(b.price)}</span></li>
         ${b.address ? `<li><span>כתובת</span><span>${esc(b.address)}</span></li>` : ''}
       </ul>
+      ${b.address && b.status === 'booked' && upcoming ? window.API.navButtons(b.address) : ''}
       ${note || ''}
       ${canCancel ? (b.is_late
         ? `<div class="alert warn"><b>שים לב:</b> נשארו פחות מ-${b.cancel_cutoff_hours} שעות לתור. ביטול עכשיו יחויב במחיר המלא של השירות (${fmt.money(b.price)}).</div>`
