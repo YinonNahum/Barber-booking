@@ -231,11 +231,13 @@ main { position: relative; }
 .cal-day-note { margin: -2px 0 12px; }
 
 /* Waze / Google Maps: compact icon buttons */
-.nav-btns { display: flex; gap: 10px; margin: 10px 0 12px; }
-.nav-btn { width: 56px; min-height: 56px; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
-  border: 1px solid var(--ink); background: #fff; color: var(--ink); text-decoration: none; border-radius: 12px; }
-.nav-btn span { font-size: 10px; font-weight: 700; letter-spacing: 0; line-height: 1; }
-.nav-btn:hover, .nav-btn:focus-visible { background: var(--ink); color: #fff; }
-.site-footer .nav-btns { margin: 10px 0 0; }
+.nav-btns { display: flex; gap: 18px; margin: 8px 0 12px; }
+.nav-btn { min-width: 44px; min-height: 48px; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  color: var(--ink); text-decoration: none; background: none; border: 0; padding: 0; transition: color .15s, transform .15s; }
+.nav-btn svg { width: 26px; height: 26px; }
+.nav-btn span { font-size: 10px; font-weight: 700; letter-spacing: 0; line-height: 1; color: var(--muted); }
+.nav-btn:hover, .nav-btn:focus-visible { color: var(--orange); transform: translateY(-1px); }
+.nav-btn:hover span { color: var(--orange); }
+.site-footer .nav-btns { margin: 8px 0 0; }
 /* room for the hosting badge in the bottom corner */
 .site-footer .inner { padding-bottom: 104px; }
