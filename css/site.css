@@ -230,8 +230,12 @@ main { position: relative; }
 .cell[aria-pressed="true"] .dot { background: #fff; box-shadow: none; }
 .cal-day-note { margin: -2px 0 12px; }
 
-/* Waze / Google Maps */
-.nav-btns { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 12px; }
-.nav-btn { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; border: 1px solid var(--ink); background: #fff; color: var(--ink); text-decoration: none; font-weight: 700; font-size: 14px; letter-spacing: 0; }
-.nav-btn:hover { background: var(--ink); color: #fff; }
-.site-footer .nav-btns { margin: 8px 0 0; }
+/* Waze / Google Maps: compact icon buttons */
+.nav-btns { display: flex; gap: 10px; margin: 10px 0 12px; }
+.nav-btn { width: 56px; min-height: 56px; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  border: 1px solid var(--ink); background: #fff; color: var(--ink); text-decoration: none; border-radius: 12px; }
+.nav-btn span { font-size: 10px; font-weight: 700; letter-spacing: 0; line-height: 1; }
+.nav-btn:hover, .nav-btn:focus-visible { background: var(--ink); color: #fff; }
+.site-footer .nav-btns { margin: 10px 0 0; }
+/* room for the hosting badge in the bottom corner */
+.site-footer .inner { padding-bottom: 104px; }
