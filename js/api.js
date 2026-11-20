@@ -182,11 +182,15 @@
   function navButtons(address) {
     if (!address) return '';
     const q = encodeURIComponent(navQuery(address));
+    const cfg = window.APP_CONFIG;
+    const pinned = cfg.NAV_COORDS && cfg.NAV_ADDRESS && cfg.NAV_ADDRESS.replace(/\s/g, '') === String(address).replace(/\s/g, '');
+    const waze = pinned ? `https://waze.com/ul?ll=${cfg.NAV_COORDS}&navigate=yes` : `https://waze.com/ul?q=${q}&navigate=yes`;
+    const gmaps = `https://www.google.com/maps/search/?api=1&query=${q}`; // verified: opens the named place "שחף 115, סלעית"
     return `<div class="nav-btns" role="group" aria-label="ניווט למספרה">
-      <a class="nav-btn" href="https://waze.com/ul?q=${q}&navigate=yes" target="_blank" rel="noopener" aria-label="ניווט עם Waze" title="Waze">
+      <a class="nav-btn" href="${waze}" target="_blank" rel="noopener" aria-label="ניווט עם Waze" title="Waze">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 17h-.5A1.5 1.5 0 0 1 3 15.5V13l2-5a2 2 0 0 1 1.9-1.4h10.2A2 2 0 0 1 19 8l2 5v2.5a1.5 1.5 0 0 1-1.5 1.5H19"/><path d="M3.5 12.5h17"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M9 17h6"/></svg>
         <span>Waze</span></a>
-      <a class="nav-btn" href="https://www.google.com/maps/search/?api=1&query=${q}" target="_blank" rel="noopener" aria-label="ניווט עם Google Maps" title="Google Maps">
+      <a class="nav-btn" href="${gmaps}" target="_blank" rel="noopener" aria-label="ניווט עם Google Maps" title="Google Maps">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
         <span>מפות</span></a>
     </div>`;
